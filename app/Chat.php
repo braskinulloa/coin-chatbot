@@ -14,8 +14,6 @@ class Chat extends Model
 
     public $timestamps = true;
 
-    protected $dateFormat = 'U';
-
     public function user()
     {
         $this->belongsTo(User::class);

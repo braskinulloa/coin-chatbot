@@ -10,7 +10,8 @@ class HistoricalController extends Controller
 {
     public function index()
     {
-        $historical = User::find(Auth::user()['id'])->transactions();
+        // $historical = User::find(Auth::user()['id'])->transactions();
+        $historical = [];
         return view('historical', compact('historical'));
     }
 }

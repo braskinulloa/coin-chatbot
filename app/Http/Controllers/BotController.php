@@ -17,13 +17,12 @@ class BotController extends Controller
     //dd(unserialize(Crypt::decryptString($this->auth)));
     public function __construct()
     {   
+        dump(Auth::check());
         $this->gest_chats = session()->has('gest_chats') ? session('gest_chats') : $this->gest_chats;
         $this->auth = new TemporalAuth();
     }
 
     public function index(){
-        dump(Auth::check());
-        dump(request()->session()->all());
         request()->session()->push('gest_chats', session()->has('gest_chats') ? $this->gest_chats : []);
         $user = Auth::check() ? Auth::user() : null;
         return view('welcome', ['user' => $user,
@@ -35,7 +34,7 @@ class BotController extends Controller
     public function hear(User $user){
 
         if(request()['question'] != null && !Auth::guest()) {
-            $user->chats()->create(
+            $user->find(Auth::id())->chats()->create(
                 [
                 'message'  => request()['question'], 
                 'from_bot' => 0
@@ -53,14 +52,12 @@ class BotController extends Controller
         return $this->index();
     }
     public function ask(User $user, $request){
-        // if (Auth::guest()) {
-        //     $this->analizeQuestion($user, $request);
-        // }
         $question = $request['question'];
         $json = json_decode(file_get_contents(base_path('resources/json/qa.json')), true);
         $question = $question!= null ? $question: 'nothing';
         try {
           $index = array_rand($json[$question]);
+          $user = $user->find(Auth::id());
           $user->chats()->create(
             [
             'message'  => $json[$question][$index],
@@ -90,20 +87,47 @@ class BotController extends Controller
                 'from_bot' => 1
                 ]);  
             return;
-            break;  
+            break;
+          case 'login':
+            $this->auth->current_action = 'login';
+            array_push($this->gest_chats, [
+                'message'  => 'Prefect!, now tipe your user name :-)', 
+                'from_bot' => 1
+                ]);  
+            return;
+            break; 
+          case 'logout':
+            if(Auth::check()){
+              $user->chats()->truncate();
+              Auth::logout();
+              $response = 'You have successfully logged out!';
+            }else{
+              $response = 'You are not logged in yet!';
+            }
+            array_push($this->gest_chats, [
+              'message'  => $response,
+              'from_bot' => 1
+            ]);
+            return;
+            break;    
           default:
             switch (Crypt::decryptString($request->get('current_action'))) {
                 case 'register':
-                    // $response = $this->register_req($request);
+                    $this->auth->current_action = 'register';
                     array_push($this->gest_chats, [
-                        'message'  => $this->register_req($request), 
+                        'message'  => $this->manage_req($request), 
                         'from_bot' => 1
                         ]);
                     return;
                 break;
                 case 'login':
-                    $response = $this->register_req($request);
-                break;
+                  $this->auth->current_action = 'login';
+                  array_push($this->gest_chats, [
+                    'message'  => $this->manage_req($request), 
+                    'from_bot' => 1
+                    ]);
+                return;
+                break; 
                 default:
                     $response = 'I don\'t understand, sorry :-(';
                 break;
@@ -180,12 +204,12 @@ class BotController extends Controller
         }
         return 'I don\'t understand, sorry :-(';
       }
-      private function register_req($request){
+      private function manage_req($request){
         $question = $request['question'];
-        session(['name' => $question ]);
         $messages = [
                 'name.required'     => 'Sorry!, your name is required :-(',
-                'name.unique:users'       => 'Sorry that name is taken! :-(',
+                'name.unique'       => 'Sorry that name is taken! :-(',
+                'name.exists'       => 'Sorry that name is do not exists, register first! :-(',
                 'name.max'          => 'Sorry that name is to large! :-(',
                 'password.required'           => 'Sorry! a password is required! :-(',
         ];
@@ -198,39 +222,50 @@ class BotController extends Controller
         else if($request->current_action && $request->name && !$request->password){
             $request->request->set('password', $question);
         }
-        
-        $validated_data = Validator::make($request->all(), [
-          'name'     =>  ['required', 'unique:users', 'max:45'],
-          'password' =>  'required'
-        ], $messages);
-        dump($request->all());
+        if($this->auth->current_action == 'register'){
+          $validated_data = Validator::make($request->all(), [
+            'name'     =>  ['required', 'unique:users', 'max:45'],
+            'password' =>  'required'
+          ], $messages);
+        }else{
+          $validated_data = Validator::make($request->all(), [
+            'name'     =>  ['required', 'exists:users', 'max:45'],
+            'password' =>  'required'
+          ], $messages);
+        }
         if ($validated_data->errors()) {
             if ($validated_data->errors()->get('name')) {
-                $this->auth = new TemporalAuth('', '', 'register');
+                $this->auth = new TemporalAuth('', '', $this->auth->current_action);
                 return $validated_data->errors()->get('name')[0];
             }
             else if ($request->name == $question) {
-                $this->auth = new TemporalAuth($request->name, $request->password, 'register');
-                return 'Nice name!, now choose you password!';
+                $this->auth = new TemporalAuth($request->name, $request->password, $this->auth->current_action);
+                return 'Nice name!, now you password!';
             }
             else if ($validated_data->errors()->get('password')) {
-                $this->auth = new TemporalAuth($request->name, '', 'register');
+                $this->auth = new TemporalAuth($request->name, '', $this->auth->current_action);
                 return $validated_data->errors()->get('password')[0];
             }
-
         }
         $this->auth = new TemporalAuth();
-        $user = $this->register($request);
-        Auth::attempt(['name' => $user->name, 'password' => $user->password]);
-        return 'Welcome '.$request->name.' thanks for signing up to our page! Enjoy! :-)';
-
+        if($request->current_action == 'register'){
+            $user = $this->register($request);
+            Auth::attempt([ 'name' => $request->name, 'password' => $request->password], true);
+            return 'Welcome '.$request->name.' thanks for signing up to our page! Enjoy! :-)';
+        }else if($request->current_action == 'login'){
+            $logged = Auth::attempt([ 'name' => $request->name, 'password' => $request->password], true);
+            if ($logged) {
+              return 'Welcome again '.$request->name.'!';
+            }else{
+              return 'Your password must be worng '.$request->name.'!, Try again!';
+            }
+        }
       }
       public function register($request){
-        $user = User::create([
+        User::create([
             'name' => $request->name, 
             'password' => Hash::make($request->password)
         ]);
-        return $user;    
       }
       public function cleanRequest($request){
         $request->request->set('name', Crypt::encryptString(''));

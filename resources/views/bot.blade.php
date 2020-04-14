@@ -57,7 +57,7 @@
     <div class="input-group-prepend">
       <span class="input-group-text" id="inputGroup-sizing-sm">@</span>
     </div>
-    <input type="text" class="form-control" name="question" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-lg">
+    <input type="text" class="form-control" name="question" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-lg" autofocus>
     <input type="hidden" name="name" value="{{ $name ?? '' }}">
     <input type="hidden" name="password" value="{{ $password ?? '' }}">
     <input type="hidden" name="current_action" value="{{ $current_action ?? '' }}">

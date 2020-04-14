@@ -15,8 +15,11 @@ class CreateTransactionsTable extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('from_usr_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreignId('to_usr_id')->references('id')->on('users')->onDelete('cascade');
+            $table->string('type')->default('consult');
+            $table->double('amount')->default(0);
+            $table->string('currency')->nullable();
+            $table->string('balance');
+            $table->foreignId('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

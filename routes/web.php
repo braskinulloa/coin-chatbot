@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 //     return view('welcome');
 // });
 Route::get('', 'BotController@index');
-Route::post('/', 'BotController@hear');
-Route::get('/historical', 'HistoricalController@index');
+Route::post('', 'BotController@hear');
+Route::get('historical', 'HistoricalController@index');
 
 

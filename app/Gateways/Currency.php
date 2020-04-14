@@ -7,7 +7,7 @@ use GuzzleHttp\Client;
 
 class Currency
 {
-    public function changeCurrency($amount = 0, $to = 'EUR', $from = '') {
+    public function changeCurrency($amount = 0, $to = 'EUR', $from = ''):  int{
       /****************** CHANGE TO AUTH USER*/
       $from = $from != ''? $from : User::find(1)->currency;
       $client = new Client([

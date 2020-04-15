@@ -2,11 +2,28 @@
 @section('title', 'Historical')
 @section('content')
 
-<ul>
+<table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+        <th scope="col">Amount</th>
+        <th scope="col">Currency</th>
+        <th scope="col">Balance</th>
+        <th scope="col">Date</th>
+      </tr>
+    </thead>
+    <tbody>
 @forelse (Auth::user()->transactions as $h)
-    <li>{{ $h->type }}</li>
+    <tr>
+        <th>{{ $h->type }}</th>
+        <td>{{ $h->amount }}</td>
+        <td>{{ $h->currency }}</td>
+        <td>{{ $h->balance }}</td>
+        <td>{{ $h->created_at }}</td>
+    </tr>
 @empty
-    <li>No previous transactions</li>
+    <tr><td class="text-center" colspan="5">No previous transactions</td></tr>
 @endforelse
-</ul> 
 @endsection
+    </tbody>
+</table>

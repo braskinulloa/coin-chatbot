@@ -8,7 +8,7 @@
 
         <!-- Fonts -->
         <link href="https://fonts.googleapis.com/css?family=Nunito:200,600" rel="stylesheet">
-
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
         <!-- Styles -->
         <link rel="stylesheet" href="css/app.css">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
@@ -16,13 +16,30 @@
     <body>
         @include('nav')
         @section('content')
-        <div class="container">
-          <div class="row">
-            <div class="col-sm-4">
-            </div>
-            <div class="col-sm-8">
-              @include('bot')
-            </div>
+        <div class="messaging">
+          <div class="inbox_msg">
+            <div class="inbox_people">
+              <div class="headind_srch">
+                <div class="recent_heading">
+                  <h4>Coin-Bot Guide</h4>
+                </div>
+              </div>
+              <div class="inbox_chat scroll">
+                @forelse (App\Guide::all() as $g)
+                <div class="chat_list">
+                  <div class="chat_people">
+                    <div class="chat_img"> <img src="{{ asset('img/bot.png') }}" alt="sunil"> </div>
+                      <div class="chat_ib">
+                        <h5>{{ $g->title }}</h5>
+                        <p>{{ $g->description }} </p>
+                      </div>
+                  </div>
+                </div>
+                @empty
+                @endforelse
+              </div>
+            </div>    
+            @include('bot')
           </div>
         </div>
         @show

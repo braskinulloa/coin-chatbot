@@ -4,14 +4,14 @@ namespace App\Gateways;
 
 use App\User;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Auth;
 
 class Currency
 {
     public function changeCurrency($amount = 0, $to = 'EUR', $from = ''):  int{
-      /****************** CHANGE TO AUTH USER*/
-      $from = $from != ''? $from : User::find(1)->currency;
+      $from = $from != ''? $from : User::find(Auth::id())->currency;
       $client = new Client([
-                    'base_uri'        => 'https://www.amdoren.com/api/currency.php?api_key=fViqy8bwBqQvWiXbR6z62rce2c5zkJ&from='.$from.'&to='.$to.'&amount='.$amount,
+                    'base_uri'        => 'https://www.amdoren.com/api/currency.php?api_key='.env('API_CONVERT_CURRENCY_KEY').'&from='.$from.'&to='.$to.'&amount='.$amount,
                     'timeout'         => 0,
                     'allow_redirects' => false
                    //  'proxy'           => '192.168.16.1:10'

@@ -1,9 +1,10 @@
 @extends('welcome')
 @section('title', 'Historical')
 @section('content')
+
 <ul>
-@forelse ($historical as $h)
-    <li>{{ $h }}</li>
+@forelse (Auth::user()->transactions as $h)
+    <li>{{ $h->type }}</li>
 @empty
     <li>No previous transactions</li>
 @endforelse

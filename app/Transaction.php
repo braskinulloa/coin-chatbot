@@ -13,4 +13,9 @@ class Transaction extends Model
     ];
 
     public $timestamps = true;
+
+    public function user()
+    {
+        $this->belongsTo(User::class);
+    }
 }

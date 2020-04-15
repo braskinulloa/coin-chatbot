@@ -1,6 +1,6 @@
 <div class="my-3 p-3 bg-white rounded shadow-sm bot-scroll">
 @auth  
-@forelse ($user->chats as $c)
+@forelse (Auth::user()->chats as $c)
   @if($c->from_bot)
   <div class="media text-muted pt-3">
     <p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray">
@@ -11,7 +11,7 @@
   @else
   <div class="media text-muted pt-3 row">
     <p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray text-right">
-      <strong class="d-block text-gray-dark">{{ '@'.$user->name ?? 'guest' }}</strong>
+      <strong class="d-block text-gray-dark">{{ '@'.Auth::user()->name ?? 'guest' }}</strong>
       {{ $c->message }}
     </p>
   </div>
@@ -20,18 +20,21 @@
   <div class="media text-muted pt-3 row">
     <p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray">
       <strong class="d-block text-gray-dark">@coin-bot</strong>
-      Welcome {{ $user->name }}!
+      Welcome {{ Auth::user()->name }}!
     </p>
   </div>
 @endforelse
 @endauth
 @guest
+@if (count($gest_chats) == 0)
   <div class="media text-muted pt-3 row">
     <p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray">
       <strong class="d-block text-gray-dark">@coin-bot</strong>
       Welcome my friend! Login or register
     </p>
   </div>
+@endif
+  
   @foreach ($gest_chats as $g)
   @if($g['from_bot'])
   <div class="media text-muted pt-3">

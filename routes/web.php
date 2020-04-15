@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\CurrencyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,6 +18,6 @@ use Illuminate\Support\Facades\Route;
 // });
 Route::get('', 'BotController@index');
 Route::post('', 'BotController@hear');
-Route::get('historical', 'HistoricalController@index');
+Route::get('/historical', 'HistoricalController@index')->middleware('auth');
 
 

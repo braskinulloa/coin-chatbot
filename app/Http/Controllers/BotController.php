@@ -8,6 +8,7 @@ use App\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
 
 class BotController extends Controller
@@ -22,18 +23,16 @@ class BotController extends Controller
     }
 
     public function index(){
-      dump('status '.Auth::check());
-
         request()->session()->push('gest_chats', session()->has('gest_chats') ? $this->gest_chats : []);
-        $user = Auth::check() ? Auth::user() : null;
-        return view('welcome', ['user' => $user,
+        // $user = Auth::check() ? Auth::user() : null;
+        return view('welcome', [//'user' => $user,
                                 'gest_chats' => $this->gest_chats,
                                 'name' => Crypt::encryptString($this->auth->name),
                                 'password' => Crypt::encryptString($this->auth->password),
                                 'current_action' => Crypt::encryptString($this->auth->current_action)]);
     }
-    public function hear(User $user){
-
+    public function hear(){
+        $user = new User;
         if(request()['question'] != null && !Auth::guest()) {
             $user->find(Auth::id())->chats()->create(
                 [
@@ -66,10 +65,10 @@ class BotController extends Controller
             ]
           );
         } catch (\Throwable $th) {
-            $this->analizeQuestion($user, $request);
+            $this->analizeQuestion($request);
         }
       }
-      public function analizeQuestion(User $user, $request){
+      public function analizeQuestion($request){
         $response = '';
         $question = $request['question'];
         $str_arr = explode(" ", $question);
@@ -78,11 +77,15 @@ class BotController extends Controller
             $response = $this->convert($str_arr);
             break;
           case 'change':
-            $response = $this->change($user, $str_arr);
-            break;  
+            if(Auth::check()){
+              $response = $this->change(Auth::user(), $str_arr);
+              break;  
+            }
+            $response = 'You are not logged in yet!';
+            break;
           case 'register':
             if(Auth::check()){
-              $response = 'Your logged in, try logging out tiping "logout"';
+              $response = 'Your logged in, try logging out tiping "logout" before a new registration!';
             } else {
               $this->auth->current_action = 'register';
               array_push($this->gest_chats, [
@@ -94,22 +97,26 @@ class BotController extends Controller
             break;
           case 'account':
             if(Auth::check()){
-              $response = $this->accountTransactions($user, $str_arr);
+              $response = $this->accountTransactions(Auth::user(), $str_arr);
             }else{
               $response = 'You are not logged in yet!';
             }
             break;
           case 'login':
-            $this->auth->current_action = 'login';
-            array_push($this->gest_chats, [
+            if(Auth::check()){
+              $response = 'Your logged in, try logging out tiping "logout" before a new registration!';
+            } else {
+              $this->auth->current_action = 'login';
+              array_push($this->gest_chats, [
                 'message'  => 'Prefect!, now tipe your user name :-)', 
                 'from_bot' => 1
                 ]);  
-            return;
-            break; 
+              return;
+              break; 
+            }
           case 'logout':
             if(Auth::check()){
-              $user->chats()->truncate();
+              User::find(Auth::id())->chats()->truncate();
               Auth::logout();
               $response = 'You have successfully logged out!';
             }else{
@@ -146,6 +153,7 @@ class BotController extends Controller
             break;
         }
         if(Auth::check()){
+          $user = User::find(Auth::id());
           $user->chats()->create(
               [
               'message'  => $response,
@@ -217,7 +225,7 @@ class BotController extends Controller
             }
             $user->update([
               'funds' => $funds,
-              [$str_arr[1] => $str_arr[3]]
+              $str_arr[1] => $str_arr[3]
             ]);
             $user->save();
             return 'Your '.$str_arr[1].' changed to '.$str_arr[3];
@@ -300,27 +308,49 @@ class BotController extends Controller
       public function accountTransactions(User $user, $str_arr = []){
         $response = 'I don\'t understand, sorry :-(';
         $currency_converter = new Currency();
-        if (is_double($str_arr[2])) {
+        if (isset($str_arr[2]) && (is_double($str_arr[2]) || is_numeric($str_arr[2]))) {
           switch ($str_arr[1]) {
             case 'deposit':
               if (isset($str_arr[3]) && $currency_converter->currencyType(strtoupper($str_arr[3])) != null) {
                 $user->funds = $user->funds + $currency_converter->changeCurrency($str_arr[2], $user->currency , $str_arr[3]);
+              }else if($currency_converter->currencyType(strtoupper($str_arr[3])) == null){
+                $response = 'Currency '.$str_arr[3].' do not exists! Try again! :-(';
+                break;
               }else{
                 $user->funds = $user->funds + $str_arr[2]; 
               }
               $user->save();
+              $user->transactions()->create([
+                'type' => $str_arr[1], 
+                'amount' => $str_arr[2], 
+                'currency' => isset($str_arr[3]) ? $str_arr[3] : $user->currency, 
+                'balance' => $user->funds
+              ]);
               $response = 'You deposit '.$str_arr[2].(isset($str_arr[3]) ? ' '.$str_arr[3]: '').
                 ' to your account. Now you have '.$user->funds.' '.$user->currency;
               break;
             case 'withdraw':
               if (isset($str_arr[3]) && $currency_converter->currencyType(strtoupper($str_arr[3])) != null) {
-                $user->funds = $user->funds - $currency_converter->changeCurrency($str_arr[2], $user->currency , $str_arr[3]);
+                $user->funds = $user->funds - $currency_converter->changeCurrency($str_arr[2], $user->currency , $str_arr[3]);              
+              }else if($currency_converter->currencyType(strtoupper($str_arr[3])) == null){
+                $response = 'Currency '.$str_arr[3].' do not exists! Try again! :-(';
+                break;
               }else{
                 $user->funds = $user->funds - $str_arr[2]; 
               }
-              $user->save();
-              $response = 'You withdraw '.$str_arr[2].(isset($str_arr[3]) ? ' '.$str_arr[3]: '').
-                ' to your account. Now you have '.$user->funds.' '.$user->currency;
+              if ($user->funds > 0) {
+                $user->save();
+                $user->transactions()->create([
+                  'type' => $str_arr[1], 
+                  'amount' => $str_arr[2], 
+                  'currency' => isset($str_arr[3]) ? $str_arr[3] : $user->currency, 
+                  'balance' => $user->funds
+                ]);
+                $response = 'You withdraw '.$str_arr[2].(isset($str_arr[3]) ? ' '.$str_arr[3]: '').
+                ' from your account. Now you have '.$user->funds.' '.$user->currency;
+              }else{
+                $response = 'You don\'t have enought money in your account ';
+              }
               break;
             default:
               break;

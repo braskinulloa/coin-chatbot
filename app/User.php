@@ -37,7 +37,7 @@ class User extends Authenticatable
     ];
 
     public function transactions() {
-        return $this->belongsToMany(User::class, 'from_usr_id', 'to_usr_id');
+        return $this->hasMany(Transaction::class);
     }
     public function chats()
     {
